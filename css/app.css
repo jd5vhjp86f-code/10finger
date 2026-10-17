@@ -603,3 +603,9 @@ kbd {
 .kb-box.small .kb-key { height: 40px; font-size: .95rem; }
 .kb-box.small .kb-key.kb-wide { font-size: .62rem; }
 .hint.inline { display: inline; }
+
+/* Geräte verbinden (Familienübersicht) */
+.sync-card { margin-top: 20px; }
+.sync-card .row { margin-top: 8px; }
+.sync-card input { flex: 1 1 12rem; min-width: 0; }
+.sync-card .secondary[hidden] { display: none; }
