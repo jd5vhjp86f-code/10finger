@@ -91,7 +91,7 @@ export function render(root, ctx) {
       h('div.profile-grid', {}, cards, addCard)),
     formBox,
     h('section.backup-row', {},
-      h('button.link', { type: 'button', onclick: () => ctx.go('family'), disabled: !ctx.data.profiles.length }, '📊 Familienübersicht'),
+      h('button.link', { type: 'button', onclick: () => ctx.go('family') }, ctx.data.profiles.length ? '📊 Familienübersicht' : '🔄 Geräte verbinden'),
       h('button.link', { type: 'button', onclick: () => downloadBackup(ctx), disabled: !ctx.data.profiles.length }, '💾 Sicherung speichern'),
       h('button.link', { type: 'button', onclick: () => pickBackup(ctx, () => ctx.go('profile')) }, '📂 Sicherung laden')),
   );

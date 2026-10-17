@@ -119,11 +119,54 @@ function profileCard(p) {
     table);
 }
 
+const SYNC_TEXT = {
+  aus: 'Nicht verbunden – Profile und Fortschritt bleiben in diesem Browser.',
+  ok: 'Verbunden ✓ – Profile und Fortschritt werden mit euren anderen Geräten abgeglichen.',
+  offline: 'Gerade kein Netz – wird später abgeglichen.',
+  'code-falsch': 'Der Familien-Code stimmt nicht mehr. Bitte neu eingeben.',
+};
+
+/** Für Eltern: Familien-Code eingeben, damit alle Geräte denselben Stand haben. */
+function syncCard(ctx) {
+  const status = h('p.hint', { role: 'status' }, SYNC_TEXT[ctx.sync.status]);
+  const input = h('input', { type: 'password', autocomplete: 'off', placeholder: 'Familien-Code', 'aria-label': 'Familien-Code' });
+  const disconnect = h('button.secondary', {
+    type: 'button',
+    hidden: !ctx.sync.hasCode(),
+    onclick: () => { ctx.sync.removeCode(); disconnect.hidden = true; status.textContent = SYNC_TEXT.aus; },
+  }, 'Dieses Gerät trennen');
+  const form = h('form.row', {},
+    input,
+    h('button.primary', { type: 'submit' }, 'Verbinden'));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!input.value.trim()) return;
+    status.textContent = 'Prüfe …';
+    if (!(await ctx.sync.setCode(input.value))) {
+      status.textContent = 'Code falsch oder kein Netz.';
+      return;
+    }
+    input.value = '';
+    disconnect.hidden = false;
+    status.textContent = 'Gleiche ab …';
+    const changed = await ctx.syncNow({ force: true });
+    if (!changed) status.textContent = SYNC_TEXT[ctx.sync.status];
+  });
+  return h('section.card.sync-card', {},
+    h('h2', {}, '🔄 Geräte verbinden'),
+    h('p', {}, 'Übt ihr an mehreren Geräten? Mit dem Familien-Code werden Profile und Fortschritt abgeglichen. Einmal pro Gerät und Browser eingeben.'),
+    form,
+    status,
+    disconnect,
+    h('p.hint', {}, 'Gespeichert wird auf eurem eigenen Server (Daten in der EU): Profilname, Avatar, Einstellungen und Lernstand. Ohne Code bleibt alles nur in diesem Browser.'));
+}
+
 export function render(root, ctx) {
   mount(root,
     h('header.topbar', {},
       h('h1', {}, '📊 Familienübersicht'),
       h('nav.actions', {}, h('button.primary', { type: 'button', onclick: () => ctx.go('profile') }, 'Zurück'))),
     h('p.hint', {}, 'Jede und jeder misst sich an der eigenen Bestleistung – deshalb gibt es hier keine Rangliste.'),
-    h('div.family-grid', {}, ctx.data.profiles.map(profileCard)));
+    h('div.family-grid', {}, ctx.data.profiles.map(profileCard)),
+    syncCard(ctx));
 }
