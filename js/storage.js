@@ -5,7 +5,20 @@ export const STORAGE_KEY = '10finger.v1';
 export const SCHEMA_VERSION = 1;
 export const BACKUP_INTERVAL_DAYS = 14;
 
-export const DEFAULT_SETTINGS = { sound: true, fontSize: 'gross', errorMode: 'wait', showKeyboard: true };
+export const DEFAULT_SETTINGS = {
+  sound: true,
+  fontSize: 'gross',
+  errorMode: 'wait',
+  showKeyboard: true,
+  blindMode: 'auto', // aus | auto (sobald eine Lektion sicher sitzt) | immer
+  warmup: true,
+  speech: true,
+  dailyGoal: null, // null = Vorgabe der Altersgruppe
+  theme: 'auto', // auto | hell | dunkel
+  contrast: false,
+};
+
+const MAX_CUSTOM_TEXTS = 20;
 
 export function createEmptyData() {
   return { schemaVersion: SCHEMA_VERSION, lastBackup: null, profiles: [] };
@@ -32,6 +45,11 @@ export function normalizeProfile(p) {
     weeks: Array.isArray(p.weeks) ? p.weeks : [],
     streak: { current: p.streak?.current ?? 0, lastDay: p.streak?.lastDay ?? null },
     badges: Array.isArray(p.badges) ? p.badges : [],
+    explorer: { stars: p.explorer?.stars ?? 0 },
+    customTexts: Array.isArray(p.customTexts) ? p.customTexts.slice(-MAX_CUSTOM_TEXTS) : [],
+    ghosts: p.ghosts && typeof p.ghosts === 'object' ? p.ghosts : {},
+    games: { rainBest: p.games?.rainBest ?? 0 },
+    flags: { ergonomicsSeen: Boolean(p.flags?.ergonomicsSeen) },
   };
 }
 
@@ -59,11 +77,19 @@ export function daysBetween(fromDay, toDay) {
   return Math.round((b - a) / 86400000);
 }
 
-/** Erinnerung an eine Sicherung: sobald geübt wurde und die letzte Sicherung ≥ 14 Tage her ist. */
+/**
+ * Erinnerung an eine Sicherung: noch nie gesichert → ab dem Tag nach dem ersten Üben
+ * (nicht mitten in der ersten Übung), danach alle 14 Tage.
+ */
 export function needsBackupReminder(data, today) {
-  const practiced = data.profiles.some((p) => p.sessions.length > 0 || p.weeks.length > 0);
-  if (!practiced) return false;
-  if (!data.lastBackup) return true;
+  const practiced = data.profiles.filter((p) => p.sessions?.length > 0 || p.weeks?.length > 0);
+  if (!practiced.length) return false;
+  if (!data.lastBackup) {
+    // Wochenwerte gibt es nur bei sehr alten Sitzungen – dann ist der erste Übungstag lange her.
+    if (practiced.some((p) => p.weeks?.length > 0)) return true;
+    const first = practiced.map((p) => p.sessions[0].date.slice(0, 10)).sort()[0];
+    return daysBetween(first, today) >= 1;
+  }
   return daysBetween(data.lastBackup, today) >= BACKUP_INTERVAL_DAYS;
 }
 

@@ -411,3 +411,195 @@ kbd {
   text-align: center;
 }
 .site-footer a { color: inherit; }
+
+/* =====================================================================
+   Phase 2 und 3
+   ===================================================================== */
+
+:root { --chart: #00897b; --kb-bg: #e4dfd3; --palm: #efe6d8; --palm-line: #c9bca6; }
+
+/* ---------- Dunkelmodus (eigene Stufen, nicht einfach invertiert) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161c1b; --surface: #212a29; --ink: #e8eeec; --muted: #a3b2af; --line: #3a4644;
+    --brand: #6cc3b9; --brand-ink: #10201e; --brand-soft: #213b38;
+    --ok: #7fd18a; --err: #ff8a80; --err-soft: #4a2523; --warn-soft: #4a3f1c;
+    --f5: #8a4a5a; --f4: #8a6234; --f3: #7f7432; --f2: #4f7a44; --fth: #3f5f8a;
+    --chart: #13a08f; --kb-bg: #2b3533; --palm: #3a4644; --palm-line: #556360;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161c1b; --surface: #212a29; --ink: #e8eeec; --muted: #a3b2af; --line: #3a4644;
+  --brand: #6cc3b9; --brand-ink: #10201e; --brand-soft: #213b38;
+  --ok: #7fd18a; --err: #ff8a80; --err-soft: #4a2523; --warn-soft: #4a3f1c;
+  --f5: #8a4a5a; --f4: #8a6234; --f3: #7f7432; --f2: #4f7a44; --fth: #3f5f8a;
+  --chart: #13a08f; --kb-bg: #2b3533; --palm: #3a4644; --palm-line: #556360;
+}
+.keyboard { background: var(--kb-bg); }
+.palm { fill: var(--palm); stroke: var(--palm-line); }
+.st-error { color: var(--surface); }
+.badge.new { color: #23302f; }
+
+/* ---------- Hoher Kontrast ---------- */
+:root[data-contrast="hoch"] { --muted: var(--ink); --line: var(--ink); }
+:root[data-contrast="hoch"] .kb-key { border: 2px solid var(--ink); }
+:root[data-contrast="hoch"] .kb-key.kb-next { outline-width: 6px; }
+:root[data-contrast="hoch"] .st-ok { text-decoration: underline; }
+:root[data-contrast="hoch"] .ch.cursor { outline: 3px solid var(--ink); }
+:root[data-contrast="hoch"] .card, :root[data-contrast="hoch"] .typing { border-width: 3px; }
+
+/* ---------- Kurs: Tagesziel und Aktivitäten ---------- */
+.goal { margin: 0 0 18px; }
+.goal-text { margin-bottom: 6px; }
+.meter { height: 14px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.meter span { display: block; height: 100%; background: var(--brand); border-radius: 999px; transition: width .4s; }
+
+.activities { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin: 0 0 26px; }
+.activity {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 14px 16px; background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius);
+}
+.activity:hover { border-color: var(--brand); }
+.activity.primary-activity { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.activity.big { align-items: center; text-align: center; padding: 28px 16px; }
+.activity.big .activity-icon { font-size: 3.5rem; }
+.activity-icon { font-size: 1.8rem; line-height: 1.1; }
+.activity-title { font-weight: 700; font-size: 1.05rem; }
+.activity-text { color: var(--muted); font-size: .85rem; }
+
+/* ---------- Kurs-Landkarte ---------- */
+.map {
+  position: relative;
+  height: calc(var(--rows) * 190px);
+  margin: 6px 0 24px;
+  background: radial-gradient(circle at 20% 30%, var(--brand-soft), transparent 40%), radial-gradient(circle at 80% 70%, var(--brand-soft), transparent 45%);
+  border-radius: 24px;
+}
+.map-path { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-path .trail { fill: none; stroke: var(--line); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 18; vector-effect: non-scaling-stroke; }
+.map-path .trail-done { fill: none; stroke: var(--brand); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: .55; }
+.station {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: min(22%, 240px);
+  display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center;
+  padding: 10px 8px 12px;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 18px;
+  transition: transform .12s;
+}
+.station:not(:disabled):hover { transform: translate(-50%, -54%); border-color: var(--brand); }
+.station.next { border-color: var(--brand); box-shadow: 0 0 0 5px var(--brand-soft); }
+.station.done { border-color: #9cc9a0; }
+.station.locked > * { opacity: .45; }
+.station-icon { font-size: 2rem; line-height: 1.1; }
+.station-nr { font-size: .75rem; color: var(--muted); }
+.station-title { font-weight: 700; }
+.station-keys { font-family: var(--mono); font-size: .9rem; }
+.station-status { font-size: .78rem; color: var(--muted); }
+.station.done .station-status { color: var(--ok); }
+
+.badges-box { margin: 10px 0 0; }
+.badges-box summary { cursor: pointer; font-weight: 700; margin-bottom: 10px; }
+.badge.missing { opacity: .55; }
+.goal-reached { font-weight: 700; color: var(--ok); }
+
+/* ---------- Übung: Zeitleiste, Rennen, Blindmodus ---------- */
+.timebar { height: 10px; border-radius: 999px; background: var(--line); margin: 0 0 12px; overflow: hidden; }
+.timebar span { display: block; height: 100%; width: 100%; background: var(--brand); }
+.race { display: grid; gap: 8px; margin: 0 0 12px; }
+.lane { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 10px; }
+.lane-label { font-weight: 700; color: var(--muted); }
+.track { position: relative; height: 38px; background: var(--surface); border: 2px dashed var(--line); border-radius: 999px; }
+.track::after { content: "🏁"; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+.runner { position: absolute; top: 50%; transform: translateY(-50%); font-size: 1.6rem; transition: left .12s linear; left: 0; }
+.runner.ghost { opacity: .7; }
+.blind-note { color: var(--muted); text-align: center; margin: 12px 0 0; }
+.pause-hint { background: var(--warn-soft); border-radius: var(--radius); padding: 12px 16px; margin: 16px 0; }
+
+/* ---------- Familienübersicht ---------- */
+.family-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.family-head { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; }
+.family-head h2 { margin: 0; }
+.family-head .sub { margin: 0; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0 14px; }
+.stat { background: var(--bg); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; }
+.stat-label { font-size: .72rem; color: var(--muted); }
+.stat-value { font-weight: 700; font-size: .95rem; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chart-box { position: relative; margin: 0; }
+.chart-box figcaption { font-size: .85rem; font-weight: 600; margin-bottom: 4px; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; touch-action: none; }
+.chart-line { fill: none; stroke: var(--chart); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.chart-dot { fill: var(--chart); stroke: var(--surface); stroke-width: 2; }
+.chart-base { stroke: var(--line); stroke-width: 1; }
+.chart-cross { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-label { font-size: 12px; fill: var(--ink); font-weight: 700; font-family: var(--font); }
+.chart-tip {
+  position: absolute; top: 18px; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+  background: var(--ink); color: var(--surface); font-size: .78rem; padding: 3px 8px; border-radius: 6px;
+}
+.problem-line kbd { margin-right: 4px; }
+.table-view { margin-top: 10px; }
+.table-view summary { cursor: pointer; color: var(--brand); }
+.table-view table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .85rem; }
+.table-view th, .table-view td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+
+/* ---------- Eigene Texte ---------- */
+.custom-form { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+.custom-form label { font-weight: 600; margin-top: 8px; }
+.custom-form input, .custom-form textarea {
+  padding: .5em .7em; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; color: inherit;
+}
+.custom-form textarea { font-family: var(--mono); resize: vertical; }
+.text-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+.text-meta { display: flex; justify-content: space-between; gap: 10px; }
+.text-preview { color: var(--muted); font-family: var(--mono); font-size: .9rem; margin: 6px 0 0; }
+
+/* ---------- Entdecker ---------- */
+.explorer-stars { font-size: 1.4rem; font-weight: 700; text-align: center; }
+.explorer-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.explorer-row { display: flex; justify-content: center; gap: 6px; font-size: 2.2rem; color: #e0a800; }
+.explorer-letter { display: flex; justify-content: center; align-items: baseline; gap: 24px; margin: 4px 0; transition: transform .2s; }
+.explorer-letter .upper { font-size: 9rem; font-weight: 800; line-height: 1; color: var(--brand); }
+.explorer-letter .lower { font-size: 5rem; font-weight: 700; color: var(--muted); }
+.explorer-letter.pop { transform: scale(1.2); }
+.explorer-say { text-align: center; font-size: 1.5rem; font-weight: 700; min-height: 2.2em; margin: 0; }
+.explorer-kb .keyboard { max-width: 1100px; }
+.explorer-kb .kb-key { height: 64px; font-size: 1.4rem; }
+.explorer-kb .kb-key.kb-wide { font-size: .85rem; }
+.explorer-done .explorer-celebrate { font-size: 4rem; }
+
+/* ---------- Spiele ---------- */
+.games { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.game-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.game-icon { font-size: 3rem; }
+.rain-hud { margin: 0 10px 0 0; font-weight: 700; }
+.rain-field {
+  position: relative; height: 560px; overflow: hidden; border-radius: 20px;
+  border: 2px solid var(--line);
+  background: linear-gradient(var(--brand-soft), var(--surface));
+}
+.drop {
+  position: absolute; top: 0; padding: 6px 14px; border-radius: 999px;
+  background: var(--surface); border: 2px solid var(--line);
+  font-family: var(--mono); font-size: 1.6rem; white-space: nowrap; will-change: transform;
+}
+.drop.active { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.drop-done { color: var(--ok); }
+.rain-start { text-align: center; margin-top: 12px; font-size: 1.2rem; }
+
+/* ---------- Ergonomie ---------- */
+.ergo { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; margin-bottom: 20px; }
+.posture { width: 100%; height: auto; }
+.posture .desk, .posture .chair { fill: var(--muted); }
+.posture .pc { fill: var(--ink); }
+.posture .screen { fill: var(--brand); }
+.posture .body { fill: var(--f4); stroke: var(--ink); stroke-width: 2; }
+.posture .limb { stroke: var(--ink); stroke-width: 9; stroke-linecap: round; }
+.posture .sight { stroke: var(--brand); stroke-width: 2; stroke-dasharray: 6 5; }
+.posture .lbl { font: 700 20px var(--font); fill: var(--surface); paint-order: stroke; stroke: var(--brand); stroke-width: 8px; stroke-linejoin: round; }
+.ergo-list { font-size: 1.1rem; display: grid; gap: 8px; }
+.kb-box.small .keyboard { max-width: 760px; }
+.kb-box.small .kb-key { height: 40px; font-size: .95rem; }
+.kb-box.small .kb-key.kb-wide { font-size: .62rem; }
+.hint.inline { display: inline; }

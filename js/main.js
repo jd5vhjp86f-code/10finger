@@ -1,4 +1,4 @@
-// Start, Wechsel zwischen Ansichten.
+// Start, Wechsel zwischen Ansichten, Hinweisleisten, Darstellung, Offline-Betrieb.
 
 import { createStorage } from './storage.js';
 import { getProfile } from './profiles.js';
@@ -7,6 +7,11 @@ import * as courseView from './views/course.js';
 import * as exerciseView from './views/exercise.js';
 import * as resultsView from './views/results.js';
 import * as settingsView from './views/settings.js';
+import * as familyView from './views/family.js';
+import * as customView from './views/custom.js';
+import * as explorerView from './views/explorer.js';
+import * as gamesView from './views/games.js';
+import * as ergonomicsView from './views/ergonomics.js';
 
 const VIEWS = {
   profile: profileView,
@@ -14,7 +19,16 @@ const VIEWS = {
   exercise: exerciseView,
   results: resultsView,
   settings: settingsView,
+  family: familyView,
+  custom: customView,
+  explorer: explorerView,
+  games: gamesView,
+  ergonomics: ergonomicsView,
 };
+
+// Ansichten, die ohne gewähltes Profil erreichbar sind
+const PUBLIC_VIEWS = new Set(['profile', 'family']);
+const WARMUP_GAP_MS = 60 * 60 * 1000;
 
 const root = document.getElementById('app');
 const bannerBox = document.getElementById('banners');
@@ -26,6 +40,7 @@ const ctx = {
   profileId: null,
   words: [],
   sentences: { kids: [], adults: [] },
+  practiceSeconds: 0,
   get profile() {
     return this.profileId ? getProfile(this.data, this.profileId) : null;
   },
@@ -40,9 +55,11 @@ const ctx = {
   banner,
   setProfile(id) {
     this.profileId = id;
-    applyFontSize(this.profile);
+    this.practiceSeconds = 0;
+    applyAppearance(this.profile);
   },
-  applyFontSize,
+  applyAppearance,
+  startExercise,
 };
 
 let cleanup = null;
@@ -50,19 +67,45 @@ let cleanup = null;
 function go(name, params = {}) {
   if (cleanup) cleanup();
   cleanup = null;
-  if (name !== 'profile' && !ctx.profile) name = 'profile';
+  if (!PUBLIC_VIEWS.has(name) && !ctx.profile) name = 'profile';
   root.replaceChildren();
   root.dataset.view = name;
   cleanup = VIEWS[name].render(root, ctx, params) ?? null;
   window.scrollTo(0, 0);
 }
 
-function applyFontSize(profile) {
-  document.body.dataset.font = profile?.settings.fontSize ?? 'gross';
+/**
+ * Übung starten. Beim allerersten Mal kommt der Ergonomie-Hinweis; vor der ersten Lektion
+ * einer Sitzung (eine Stunde Pause) eine Minute Aufwärmen, wenn eingeschaltet.
+ */
+function startExercise(params, { skipWarmup = false } = {}) {
+  const p = ctx.profile;
+  if (!p.flags.ergonomicsSeen) {
+    go('ergonomics', { next: params });
+    return;
+  }
+  const last = p.sessions.at(-1);
+  const sinceLast = last ? Date.now() - new Date(last.date).getTime() : Infinity;
+  const wantsWarmup = !skipWarmup && p.settings.warmup && params.mode === 'lesson'
+    && params.lesson > 1 && last && sinceLast > WARMUP_GAP_MS;
+  if (wantsWarmup) go('exercise', { mode: 'warmup', next: params });
+  else go('exercise', params);
 }
 
-/** Hinweisleiste; gleiche id ersetzt die vorherige Meldung. */
-function banner(id, text, kind = 'info') {
+/** Schriftgröße, Farbschema und Kontrast des aktiven Profils anwenden. */
+function applyAppearance(profile) {
+  const s = profile?.settings;
+  document.body.dataset.font = s?.fontSize ?? 'gross';
+  const theme = s?.theme ?? 'auto';
+  if (theme === 'hell') document.documentElement.dataset.theme = 'light';
+  else if (theme === 'dunkel') document.documentElement.dataset.theme = 'dark';
+  else delete document.documentElement.dataset.theme;
+  if (s?.contrast) document.documentElement.dataset.contrast = 'hoch';
+  else delete document.documentElement.dataset.contrast;
+}
+
+/** Hinweisleiste; gleiche id ersetzt die vorherige Meldung. Optional mit Knopf. */
+function banner(id, text, kind = 'info', action = null) {
   bannerBox.querySelector(`[data-id="${id}"]`)?.remove();
   if (!text) return;
   const el = document.createElement('div');
@@ -70,13 +113,22 @@ function banner(id, text, kind = 'info') {
   el.dataset.id = id;
   const p = document.createElement('p');
   p.textContent = text;
+  el.append(p);
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'secondary';
+    b.textContent = action.label;
+    b.addEventListener('click', action.onClick);
+    el.append(b);
+  }
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'banner-close';
   close.setAttribute('aria-label', 'Hinweis schließen');
   close.textContent = '×';
   close.addEventListener('click', () => el.remove());
-  el.append(p, close);
+  el.append(close);
   bannerBox.append(el);
 }
 
@@ -103,8 +155,24 @@ function environmentHints() {
   const isSafari = /Safari\//.test(ua) && !/Chrome\/|Chromium\/|CriOS|FxiOS|Edg\//.test(ua);
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   if (isSafari && !standalone) {
-    banner('safari', 'Hinweis: Safari löscht gespeicherte Daten, wenn die Seite 7 Tage nicht besucht wurde. Besser Chrome, Edge oder Firefox nutzen – oder regelmäßig eine Sicherung speichern.', 'info');
+    banner('safari', 'Hinweis: Safari löscht gespeicherte Daten, wenn die Seite 7 Tage nicht besucht wurde. Besser Chrome, Edge oder Firefox nutzen, die Seite als App installieren – oder regelmäßig eine Sicherung speichern.', 'info');
   }
+}
+
+/** Offline-Betrieb: Service Worker nur über HTTPS (oder localhost). */
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    reg.addEventListener('updatefound', () => {
+      const worker = reg.installing;
+      worker?.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          banner('update', 'Eine neue Version von 10finger ist da.', 'info', { label: 'Neu laden', onClick: () => location.reload() });
+        }
+      });
+    });
+  }).catch(() => { /* ohne Offline-Betrieb weiter */ });
 }
 
 async function start() {
@@ -113,6 +181,7 @@ async function start() {
   if (error) banner('load', error, 'warn');
   environmentHints();
   storage.requestPersist(); // Ergebnis zeigt die Einstellungsseite
+  registerServiceWorker();
   const [words, kids, adults] = await Promise.all([
     loadJson('data/words-de.json', []),
     loadJson('data/sentences-kids.json', []),

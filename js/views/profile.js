@@ -6,7 +6,7 @@ import { AVAILABLE_LESSONS } from '../lessons.js';
 
 export function render(root, ctx) {
   ctx.profileId = null;
-  ctx.applyFontSize(null);
+  ctx.applyAppearance(null);
 
   async function choose(profile) {
     if (profile.pinHash) {
@@ -91,6 +91,7 @@ export function render(root, ctx) {
       h('div.profile-grid', {}, cards, addCard)),
     formBox,
     h('section.backup-row', {},
+      h('button.link', { type: 'button', onclick: () => ctx.go('family'), disabled: !ctx.data.profiles.length }, '📊 Familienübersicht'),
       h('button.link', { type: 'button', onclick: () => downloadBackup(ctx), disabled: !ctx.data.profiles.length }, '💾 Sicherung speichern'),
       h('button.link', { type: 'button', onclick: () => pickBackup(ctx, () => ctx.go('profile')) }, '📂 Sicherung laden')),
   );

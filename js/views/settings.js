@@ -1,34 +1,37 @@
-// Einstellungen des Profils, PIN, Sicherung, Speicherstatus.
+// Einstellungen des Profils, PIN, Darstellung, Sicherung, Speicherstatus.
 
 import { h, mount, downloadBackup, pickBackup } from './dom.js';
 import { AGE_GROUPS, avatarOf, deleteProfile, isValidPin, setPin } from '../profiles.js';
+import { canSpeak } from './sound.js';
 
 export function render(root, ctx) {
   const p = ctx.profile;
   const s = p.settings;
 
+  const status = h('p.saved', { role: 'status' });
   function save(msg = 'Gespeichert.') {
     if (ctx.save()) status.textContent = msg;
   }
 
-  const status = h('p.saved', { role: 'status' });
-
-  const check = (key, label) => {
+  const check = (key, label, hint = null) => {
     const input = h('input', { type: 'checkbox', id: `set-${key}`, checked: s[key] });
-    input.addEventListener('change', () => { s[key] = input.checked; save(); });
-    return h('div.field.check', {}, input, h('label', { for: `set-${key}` }, label));
+    input.addEventListener('change', () => { s[key] = input.checked; ctx.applyAppearance(p); save(); });
+    return h('div.field.check', {}, input, h('label', { for: `set-${key}` }, label, hint ? h('span.hint.inline', {}, ` – ${hint}`) : null));
   };
 
-  const select = (key, label, options, onChange) => {
+  const select = (key, label, options, { parse = (v) => v, onChange } = {}) => {
     const el = h('select', { id: `set-${key}` },
-      Object.entries(options).map(([v, l]) => h('option', { value: v, selected: s[key] === v }, l)));
-    el.addEventListener('change', () => { s[key] = el.value; onChange?.(); save(); });
+      Object.entries(options).map(([v, l]) => h('option', { value: v, selected: String(s[key] ?? '') === v }, l)));
+    el.addEventListener('change', () => { s[key] = parse(el.value); onChange?.(); save(); });
     return h('div.field', {}, h('label', { for: `set-${key}` }, label), el);
   };
 
   const age = h('select', { id: 'set-age' },
     Object.entries(AGE_GROUPS).map(([v, g]) => h('option', { value: v, selected: p.ageGroup === v }, g.label)));
   age.addEventListener('change', () => { p.ageGroup = age.value; save(); });
+
+  const goalOptions = { '': `Vorgabe der Altersgruppe (${AGE_GROUPS[p.ageGroup].minutes} min)` };
+  for (const m of [3, 5, 7, 10, 12, 15, 20, 30]) goalOptions[m] = `${m} Minuten`;
 
   const pinInput = h('input', { type: 'password', id: 'set-pin', inputmode: 'numeric', maxlength: '4', autocomplete: 'off' });
   const pinBox = h('div.field', {},
@@ -59,15 +62,30 @@ export function render(root, ctx) {
     h('header.topbar', {},
       h('div.who', {}, h('span.avatar.small', { 'aria-hidden': 'true' }, avatarOf(p)), h('h1', {}, `Einstellungen für ${p.name}`)),
       h('nav.actions', {}, h('button.primary', { type: 'button', onclick: () => ctx.go('course') }, 'Fertig'))),
+    status,
     h('div.settings-grid', {},
       h('section.card', {},
         h('h2', {}, 'Üben'),
-        check('sound', 'Ton bei Tippfehlern'),
-        check('showKeyboard', 'Bildschirmtastatur anzeigen'),
-        select('fontSize', 'Schriftgröße', { normal: 'normal', gross: 'groß', riesig: 'sehr groß' }, () => ctx.applyFontSize(p)),
-        select('errorMode', 'Bei Tippfehlern', { wait: 'warten, bis die richtige Taste kommt', continue: 'weiterschreiben (Rücktaste erlaubt)' }),
         h('div.field', {}, h('label', { for: 'set-age' }, 'Altersgruppe'), age),
-        status),
+        select('dailyGoal', 'Tagesziel', goalOptions, { parse: (v) => (v ? Number(v) : null) }),
+        select('errorMode', 'Bei Tippfehlern', { wait: 'warten, bis die richtige Taste kommt', continue: 'weiterschreiben (Rücktaste erlaubt)' }),
+        check('warmup', 'Vor der ersten Lektion 1 Minute aufwärmen'),
+        check('sound', 'Töne'),
+        check('speech', 'Im Entdecker-Modus vorlesen', canSpeak() ? null : 'dieser Browser hat keine lokale deutsche Stimme')),
+      h('section.card', {},
+        h('h2', {}, 'Bildschirmtastatur'),
+        check('showKeyboard', 'Bildschirmtastatur anzeigen'),
+        select('blindMode', 'Blindmodus', {
+          aus: 'aus – Tastatur immer zeigen',
+          auto: 'automatisch, sobald eine Lektion sicher sitzt (≥ 97 %)',
+          immer: 'immer – Tastatur verstecken',
+        }),
+        h('p.hint', {}, 'Im Blindmodus erscheint die Tastatur nur kurz, wenn ein Fehler passiert. So lernen die Finger, ohne Hilfe zu tippen.')),
+      h('section.card', {},
+        h('h2', {}, 'Darstellung'),
+        select('fontSize', 'Schriftgröße', { normal: 'normal', gross: 'groß', riesig: 'sehr groß' }, { onChange: () => ctx.applyAppearance(p) }),
+        select('theme', 'Farben', { auto: 'wie das Betriebssystem', hell: 'hell', dunkel: 'dunkel' }, { onChange: () => ctx.applyAppearance(p) }),
+        check('contrast', 'Hoher Kontrast')),
       h('section.card', {},
         h('h2', {}, 'Profil schützen'),
         h('p.hint', {}, 'Die PIN verhindert, dass Geschwister aus Versehen im falschen Profil üben. Sie ist kein echter Schutz.'),

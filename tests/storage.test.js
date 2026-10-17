@@ -110,7 +110,8 @@ test('Erinnerung an Sicherung alle 14 Tage, aber erst nach dem ersten Üben', ()
   assert.equal(needsBackupReminder(data, '2026-10-30'), false);
   assert.equal(needsBackupReminder(data, '2026-10-31'), true);
   data.lastBackup = null;
-  assert.equal(needsBackupReminder(data, '2026-10-17'), true);
+  assert.equal(needsBackupReminder(data, '2026-10-17'), false, 'nicht am ersten Übungstag');
+  assert.equal(needsBackupReminder(data, '2026-10-18'), true);
   assert.equal(needsBackupReminder(createEmptyData(), '2026-10-17'), false);
 });
 

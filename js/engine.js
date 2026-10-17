@@ -20,6 +20,8 @@ export function createEngine(text, { errorMode = 'wait', pauseMs = PAUSE_MS } = 
   let activeMs = 0;
   let lastT = null;
   const keyStats = {};
+  // aktive Zeit (ms) beim Erreichen jeder Position – Grundlage für den „Geist“ im Rennen
+  const timeline = [];
 
   function stat(ch) {
     if (!keyStats[ch]) keyStats[ch] = { hits: 0, errors: 0, totalMs: 0, timed: 0 };
@@ -61,6 +63,7 @@ export function createEngine(text, { errorMode = 'wait', pauseMs = PAUSE_MS } = 
         s.timed++;
       }
       status[pos] = status[pos] === 'error' ? 'fixed' : 'ok';
+      timeline[pos] = activeMs;
       pos++;
       return { type: 'hit', done: pos >= chars.length };
     }
@@ -81,6 +84,8 @@ export function createEngine(text, { errorMode = 'wait', pauseMs = PAUSE_MS } = 
     get done() { return pos >= chars.length; },
     get expected() { return chars[pos]; },
     get started() { return lastT !== null; },
+    get activeMs() { return activeMs; },
+    timeline,
     chars,
     status,
     snapshot() {
