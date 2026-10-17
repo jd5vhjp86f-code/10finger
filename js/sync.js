@@ -15,7 +15,11 @@ export const SYNC_SERVER = 'https://lernsync.2n7vt787wn.workers.dev';
 const APP = '10finger';
 const CODE_KEY = 'lernsync.code';
 const META_KEY = '10finger.sync';
-const SEND_DELAY_MS = 15000;
+// Gespeichert wird nur am Ende einer Übung oder bei Einstellungen – also selten. Deshalb fast sofort
+// senden: Wer gleich danach den Laptop zuklappt, soll den Stand trotzdem auf dem Server haben.
+const SEND_DELAY_MS = 1500;
+// Browser schicken beim Schließen der Seite nur kleine Anfragen sicher ab (keepalive, max. 64 KB).
+const KEEPALIVE_MAX_BYTES = 60000;
 
 /** Kurzer, schneller Prüfwert (cyrb53) – nur um Änderungen zu erkennen. */
 export function checksum(text) {
@@ -78,11 +82,12 @@ export function createSync({
     const c = code();
     if (!c) { setStatus('aus'); return null; }
     try {
+      const payload = body === undefined ? undefined : JSON.stringify(body);
       const res = await fetchFn(server + path, {
         method,
-        keepalive,
+        keepalive: keepalive && (payload?.length ?? 0) < KEEPALIVE_MAX_BYTES,
         headers: { 'X-Familien-Code': c, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: payload,
       });
       if (res.status === 401) { setStatus('code-falsch'); return null; }
       setStatus('ok');
