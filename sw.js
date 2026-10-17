@@ -1,7 +1,7 @@
 // Service Worker: macht 10finger offline nutzbar.
 // Bei jeder Änderung an den Dateien VERSION erhöhen; die Liste prüft tests/sw.test.js.
 
-const VERSION = 'v3-sync-1';
+const VERSION = 'v3-sync-2';
 const CACHE = `10finger-${VERSION}`;
 
 const ASSETS = [
