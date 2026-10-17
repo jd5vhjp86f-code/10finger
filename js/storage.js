@@ -1,5 +1,5 @@
-// EINZIGES Modul mit Speicherzugriff: laden, speichern, Export/Import, Schema-Migration.
-// Ein späterer Sync-Server (Weg C) wird nur hier eingebaut.
+// Speicherzugriff: laden, speichern, Export/Import, Schema-Migration.
+// Der Abgleich zwischen Geräten (Weg C) steckt in sync.js und hängt sich über `afterSave` an.
 
 export const STORAGE_KEY = '10finger.v1';
 export const SCHEMA_VERSION = 1;
@@ -96,8 +96,9 @@ export function needsBackupReminder(data, today) {
 /**
  * @param {Storage} [backend] standardmäßig localStorage; in Tests ein Ersatzobjekt.
  * @param {StorageManager} [manager] standardmäßig navigator.storage
+ * @param {(data: object) => void} [afterSave] wird nach jedem erfolgreichen Speichern aufgerufen (Sync)
  */
-export function createStorage(backend = globalThis.localStorage, manager = globalThis.navigator?.storage) {
+export function createStorage(backend = globalThis.localStorage, manager = globalThis.navigator?.storage, afterSave = null) {
   function available() {
     try {
       const probe = `${STORAGE_KEY}.probe`;
@@ -131,6 +132,7 @@ export function createStorage(backend = globalThis.localStorage, manager = globa
   function save(data) {
     try {
       backend.setItem(STORAGE_KEY, JSON.stringify(data));
+      try { afterSave?.(data); } catch { /* Abgleich darf das Speichern nie stören */ }
       return true;
     } catch {
       return false;

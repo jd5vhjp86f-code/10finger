@@ -1,6 +1,7 @@
 // Start, Wechsel zwischen Ansichten, Hinweisleisten, Darstellung, Offline-Betrieb.
 
 import { createStorage } from './storage.js';
+import { createSync } from './sync.js';
 import { getProfile } from './profiles.js';
 import * as profileView from './views/profile.js';
 import * as courseView from './views/course.js';
@@ -32,10 +33,13 @@ const WARMUP_GAP_MS = 60 * 60 * 1000;
 
 const root = document.getElementById('app');
 const bannerBox = document.getElementById('banners');
-const storage = createStorage();
+const sync = createSync({ onRemoteChange: () => afterRemoteChange() });
+const storage = createStorage(undefined, undefined, (data) => sync.afterSave(data));
 
 const ctx = {
   storage,
+  sync,
+  syncNow,
   data: null,
   profileId: null,
   words: [],
@@ -175,6 +179,36 @@ function registerServiceWorker() {
   }).catch(() => { /* ohne Offline-Betrieb weiter */ });
 }
 
+// Ansichten, die bei einem Stand von einem anderen Gerät neu gezeichnet werden dürfen.
+// Während einer Übung oder eines Spiels wird nichts umgebaut.
+const REDRAW_VIEWS = new Set(['profile', 'family', 'course', 'settings']);
+
+function afterRemoteChange() {
+  storage.save(ctx.data);
+  if (ctx.profileId && !ctx.profile) ctx.profileId = null; // Profil wurde anderswo gelöscht
+  const view = root.dataset.view;
+  if (REDRAW_VIEWS.has(view)) go(view);
+}
+
+let lastSync = 0;
+/** Mit dem LernSync-Server abgleichen (nur mit Familien-Code). */
+async function syncNow({ force = false } = {}) {
+  if (!sync.hasCode()) return false;
+  if (!force && (!REDRAW_VIEWS.has(root.dataset.view) || Date.now() - lastSync < 60000)) return false;
+  lastSync = Date.now();
+  const changed = await sync.sync(ctx.data);
+  if (changed) afterRemoteChange();
+  return changed;
+}
+
+function watchSync() {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sync.flush(true);
+    else syncNow();
+  });
+  window.addEventListener('pagehide', () => sync.flush(true));
+}
+
 async function start() {
   const { data, error } = storage.load();
   ctx.data = data;
@@ -190,6 +224,8 @@ async function start() {
   ctx.words = words;
   ctx.sentences = { kids, adults };
   go('profile');
+  watchSync();
+  syncNow({ force: true });
 }
 
 start();
