@@ -1,0 +1,10 @@
+{
+  "name": "10finger",
+  "private": true,
+  "type": "module",
+  "description": "10-Finger-Schreibtrainer (QWERTZ) für 10finger.rosenbaum.hamburg",
+  "scripts": {
+    "test": "node --test",
+    "start": "python3 -m http.server 8080"
+  }
+}
