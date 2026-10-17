@@ -1,7 +1,8 @@
 # 10finger
 
 10-Finger-Schreibtrainer (QWERTZ) für 10finger.rosenbaum.hamburg – mit eigenem Profil und
-gespeichertem Fortschritt für jedes Familienmitglied, ohne Server und ohne Konto.
+gespeichertem Fortschritt für jedes Familienmitglied, ohne Konto. Optional gleicht der eigene
+LernSync-Server Profile und Fortschritt zwischen den Geräten der Familie ab (Familien-Code).
 Der vollständige Plan steht in [PLAN.md](PLAN.md).
 
 ## Funktionen (Phasen 1–3)
@@ -33,6 +34,8 @@ Der vollständige Plan steht in [PLAN.md](PLAN.md).
 - Einstellungen: Töne, Schriftgröße, Dunkelmodus, hoher Kontrast, Fehlermodus, Tagesziel, PIN
 - Installierbar als App und offline nutzbar (Manifest und Service Worker)
 - Speichern im Browser (`localStorage`, Schlüssel `10finger.v1`), Sicherung als Datei, Erinnerung alle 14 Tage
+- Geräte verbinden (Familienübersicht): mit dem Familien-Code werden Profile und Fortschritt über den
+  eigenen LernSync-Server (Cloudflare Worker, Daten in der EU) abgeglichen; ohne Code bleibt alles lokal
 - Warnungen bei Feststelltaste, Fokusverlust, Geräten ohne Tastatur, blockiertem Speicher und Safari
 
 ## Lokal starten
@@ -52,12 +55,14 @@ npm test   # node --test, keine Abhängigkeiten
 ## Aufbau
 
 Reines HTML, CSS und JavaScript (ES-Module), kein Framework, kein Build-Schritt, keine externen
-Ressourcen. Nur `js/storage.js` greift auf den Speicher zu – ein späterer Sync-Server wird dort eingebaut.
+Ressourcen. Nur `js/storage.js` und `js/sync.js` greifen auf den Speicher zu. Einzige Anfrage nach
+außen ist der optionale Abgleich mit dem LernSync-Server (`https://lernsync.2n7vt787wn.workers.dev`).
 
 | Datei | Aufgabe |
 |---|---|
 | `js/main.js` | Start, Ansichten, Übungsstart (Ergonomie, Aufwärmen), Darstellung, Service Worker |
 | `js/storage.js` | Laden, Speichern, Export/Import, Schema-Migration |
+| `js/sync.js` | Abgleich der Profile zwischen Geräten (LernSync, je Profil das neuere gewinnt, Löschen wird mitgenommen) |
 | `js/profiles.js` | Profile anlegen, wählen, PIN (nur als SHA-256-Hash) |
 | `js/keyboard.js` | QWERTZ-Layout, Fingerzuordnung, Bildschirmtastatur, Handgrafik |
 | `js/lessons.js` | die 16 Lektionen als Daten |
